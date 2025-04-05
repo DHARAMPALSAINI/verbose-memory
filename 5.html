@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A2ZCONVERTOR</title>
+  <style>
+    /* General Styles */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #cdc633;
+      margin: 0;
+      padding: 0;
+      color: #18c5cb;
+    }
+
+    header {
+      background: linear-gradient(135deg, #6a11cb, #354a6e);
+      color: #fff;
+      padding: 40px 20px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #b7d4e6;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(203, 141, 141, 0.1);
+    }
+
+    .upload-section {
+      margin: 30px 0;
+    }
+
+    .upload-section h2 {
+      font-size: 1.8rem;
+      margin-bottom: 15px;
+      color: #8d25fc;
+    }
+
+    .upload-section input {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .upload-section input:focus {
+      border-color: #2575fc;
+      outline: none;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .options button {
+      flex: 1 1 calc(33.333% - 10px);
+      padding: 12px;
+      background: #137107;
+      color: #ffffff93;
+      border: none;
+      border-radius: 5px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s ease, transform 0.2s ease;
+    }
+
+    .options button:hover {
+      background: #1a5bbf;
+      transform: translateY(-2px);
+    }
+
+    .options button:active {
+      transform: translateY(0);
+    }
+
+    textarea {
+      width: 100%;
+      height: 100px;
+      padding: 10px;
+      margin: 10px 0;
+      border: 2px solid #ddd;
+      border-radius: 5px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+    }
+
+    textarea:focus {
+      border-color: #2575fc;
+      outline: none;
+    }
+
+    footer {
+      background: #333;
+      color: #fff;
+      text-align: center;
+      padding: 15px;
+      position: fixed;
+      bottom: 0;
+      width: 100%;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .container {
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .options button {
+        flex: 1 1 100%;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .upload-section h2 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>File Converter</h1>
+  </header>
+
+  <div class="container">
+    <!-- Image Conversion Section -->
+    <div class="upload-section">
+      <h2>Image Converter</h2>
+      <input type="file" id="imageInput" accept="image/*" multiple>
+      <div class="options">
+        <button onclick="convertImage('png')">Convert to PNG</button>
+        <button onclick="convertImage('jpeg')">Convert to JPG</button>
+        <button onclick="convertImage('webp')">Convert to WEBP</button>
+      </div>
+    </div>
+
+    <!-- PDF Conversion Section -->
+    <div class="upload-section">
+      <h2>Image to PDF Converter</h2>
+      <input type="file" id="pdfInput" accept="image/*" multiple>
+      <div class="options">
+        <button onclick="convertToPDF()">Convert Images to PDF</button>
+      </div>
+    </div>
+
+    <!-- Audio Conversion Section -->
+    <div class="upload-section">
+      <h2>Audio Converter</h2>
+      <input type="file" id="audioInput" accept="audio/*">
+      <div class="options">
+        <button onclick="convertAudio('mp3')">Convert to MP3</button>
+        <button onclick="convertAudio('wav')">Convert to WAV</button>
+        <button onclick="convertAudio('ogg')">Convert to OGG</button>
+      </div>
+    </div>
+
+    <!-- Video Conversion Section -->
+    <div class="upload-section">
+      <h2>Video Converter</h2>
+      <input type="file" id="videoInput" accept="video/*">
+      <div class="options">
+        <button onclick="convertVideo('mp4')">Convert to MP4</button>
+        <button onclick="convertVideo('webm')">Convert to WEBM</button>
+        <button onclick="convertVideo('ogg')">Convert to OGG</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>&copy; 2023 File Converter. All rights reserved.</p>
+  </footer>
+
+  <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+  <script>
+    const { createFFmpeg, fetchFile } = FFmpeg;
+    const ffmpeg = createFFmpeg({ log: true });
+
+    // Function to handle image conversion
+    function convertImage(format) {
+      const fileInput = document.getElementById('imageInput');
+      if (fileInput.files.length === 0) {
+        alert('Please select an image file.');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function (event) {
+        const img = new Image();
+        img.src = event.target.result;
+
+        img.onload = function () {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          canvas.toBlob((blob) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `converted.${format}`;
+            a.click();
+          }, `image/${format}`, 1);
+        };
+      };
+
+      reader.readAsDataURL(file);
+    }
+
+    // Function to handle PDF conversion
+    function convertToPDF() {
+      const fileInput = document.getElementById('pdfInput');
+      if (fileInput.files.length === 0) {
+        alert('Please select image files.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      Array.from(fileInput.files).forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = function (event) {
+          const img = new Image();
+          img.src = event.target.result;
+
+          img.onload = function () {
+            if (index !== 0) doc.addPage();
+            doc.addImage(img, 'JPEG', 10, 10, 180, 180);
+            if (index === fileInput.files.length - 1) {
+              doc.save('converted.pdf');
+            }
+          };
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Function to handle audio conversion
+    async function convertAudio(format) {
+      const fileInput = document.getElementById('audioInput');
+      if (fileInput.files.length === 0) {
+        alert('Please select an audio file.');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const audioContext = new AudioContext();
+      const arrayBuffer = await file.arrayBuffer();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+
+      const offlineContext = new OfflineAudioContext(
+        audioBuffer.numberOfChannels,
+        audioBuffer.length,
+        audioBuffer.sampleRate
+      );
+
+      const source = offlineContext.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(offlineContext.destination);
+      source.start();
+
+      const renderedBuffer = await offlineContext.startRendering();
+      const wavBlob = bufferToWave(renderedBuffer, audioBuffer.length);
+      const url = URL.createObjectURL(wavBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `converted.${format}`;
+      a.click();
+    }
+
+    // Function to handle video conversion
+    async function convertVideo(format) {
+      const fileInput = document.getElementById('videoInput');
+      if (fileInput.files.length === 0) {
+        alert('Please select a video file.');
+        return;
+      }
+
+      if (!ffmpeg.isLoaded()) {
+        await ffmpeg.load();
+      }
+
+      const file = fileInput.files[0];
+      const inputName = 'input.' + file.name.split('.').pop();
+      const outputName = `output.${format}`;
+
+      ffmpeg.FS('writeFile', inputName, await fetchFile(file));
+      await ffmpeg.run('-i', inputName, outputName);
+      const data = ffmpeg.FS('readFile', outputName);
+
+      const url = URL.createObjectURL(new Blob([data.buffer], { type: `video/${format}` }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = outputName;
+      a.click();
+    }
+
+    // Helper function to convert audio buffer to WAV
+    function bufferToWave(abuffer, len) {
+      const numOfChan = abuffer.numberOfChannels;
+      const length = len * numOfChan * 2 + 44;
+      const buffer = new ArrayBuffer(length);
+      const view = new DataView(buffer);
+      const channels = [];
+      let offset = 0;
+      let pos = 0;
+
+      // Write WAV header
+      setUint32(0x46464952); // "RIFF"
+      setUint32(length - 8); // file length - 8
+      setUint32(0x45564157); // "WAVE"
+
+      setUint32(0x20746d66); // "fmt " chunk
+      setUint32(16); // length = 16
+      setUint16(1); // PCM (uncompressed)
+      setUint16(numOfChan);
+      setUint32(abuffer.sampleRate);
+      setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+      setUint16(numOfChan * 2); // block-align
+      setUint16(16); // 16-bit (hardcoded in this example)
+
+      setUint32(0x61746164); // "data" - chunk
+      setUint32(length - pos - 4); // chunk length
+
+      // Write interleaved data
+      for (let i = 0; i < abuffer.numberOfChannels; i++) {
+        channels.push(abuffer.getChannelData(i));
+      }
+
+      while (pos < length) {
+        for (let i = 0; i < numOfChan; i++) {
+          const sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+          view.setInt16(pos, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+          pos += 2;
+        }
+        offset++;
+      }
+
+      return new Blob([buffer], { type: 'audio/wav' });
+
+      function setUint16(data) {
+        view.setUint16(pos, data, true);
+        pos += 2;
+      }
+
+      function setUint32(data) {
+        view.setUint32(pos, data, true);
+        pos += 4;
+      }
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</body>
+</html>
